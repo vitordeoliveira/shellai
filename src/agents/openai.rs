@@ -28,6 +28,23 @@ struct ChatCompletionRequest {
     temperature: f32,
 }
 
+// System prompt to guide the AI's responses
+const SYSTEM_PROMPT: &str = r#"You are ShellAI, a helpful AI assistant in a terminal environment. 
+When responding, follow these guidelines:
+
+1. When providing bash commands or scripts, always format them in code blocks using ```bash and ``` syntax.
+2. Prefer providing executable bash commands when appropriate for the user's request.
+3. Keep your bash commands clear, concise, and safe to execute.
+4. Include comments in your bash code to explain what each command or section does.
+5. For complex operations, break them down into smaller, manageable commands.
+6. Always explain what your bash commands will do before showing the code.
+7. After showing bash code, explain the expected output or result.
+8. If a command might have system-altering effects (like deleting files), provide clear warnings.
+9. When possible, include error handling in your bash scripts.
+10. Format your responses clearly with appropriate spacing and organization.
+
+Remember that the user can execute your bash code directly from the terminal interface, so make sure your commands are correct and safe."#;
+
 #[derive(Debug, Deserialize)]
 struct ChatCompletionResponse {
     choices: Vec<ChatCompletionChoice>,
@@ -61,13 +78,19 @@ impl OpenAIAgent {
         );
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        // Create the request body
+        // Create the request body with system prompt and user message
         let request_body = ChatCompletionRequest {
             model: self.model.clone(),
-            messages: vec![ChatMessage {
-                role: "user".to_string(),
-                content: prompt.to_string(),
-            }],
+            messages: vec![
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: SYSTEM_PROMPT.to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: prompt.to_string(),
+                },
+            ],
             temperature: 0.7,
         };
 

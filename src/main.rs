@@ -20,7 +20,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Compile regex patterns for code blocks
-    let bash_regex = Regex::new(r"```(?:bash|sh)([\s\S]*?)```").unwrap();
+    // This pattern matches ```bash, ```sh, or just ``` followed by content that looks like bash
+    let bash_regex = Regex::new(r"```(?:bash|sh|)([\s\S]*?)```").unwrap();
 
     // Interactive loop
     loop {

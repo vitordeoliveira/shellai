@@ -1,13 +1,102 @@
 use colored::*;
+use crossterm::{
+    cursor::{MoveToColumn, MoveUp},
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
+};
 use regex::Regex;
 use shellai::OpenAIAgent;
 use std::io::{self, Write};
 use std::process::Command;
 
+/// Read multiline input from the user, with Enter adding a new line and Ctrl+S submitting
+fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
+    let mut buffer = String::new();
+
+    // Enable raw mode to capture key events
+    enable_raw_mode()?;
+
+    // Print initial prompt
+    print!(""); // Ensure cursor is at the right position
+    io::stdout().flush()?;
+
+    loop {
+        // Wait for a key event
+        if let Event::Key(KeyEvent {
+            code, modifiers, ..
+        }) = event::read()?
+        {
+            match code {
+                // Ctrl+S to submit
+                KeyCode::Char('s') if modifiers.contains(KeyModifiers::CONTROL) => {
+                    disable_raw_mode()?;
+                    println!(); // Move to next line after submission
+                    break;
+                }
+
+                // Enter key adds a newline character
+                KeyCode::Enter => {
+                    buffer.push('\n');
+                    print!("\n");
+                    io::stdout().flush()?;
+                }
+
+                // Backspace key
+                KeyCode::Backspace => {
+                    if !buffer.is_empty() {
+                        // Remove the last character
+                        if buffer.ends_with('\n') {
+                            // If we're at the start of a line, move up
+                            buffer.pop();
+                            execute!(io::stdout(), MoveUp(1), MoveToColumn(0))?;
+
+                            // Find the length of the previous line
+                            let last_line_len = buffer.lines().last().map_or(0, |line| line.len());
+
+                            // Move to the end of the previous line
+                            execute!(io::stdout(), MoveToColumn(last_line_len as u16))?;
+                        } else {
+                            buffer.pop();
+                            // Move cursor back and erase the character
+                            print!("\x08 \x08");
+                            io::stdout().flush()?;
+                        }
+                    }
+                }
+
+                // Regular character input
+                KeyCode::Char(c) => {
+                    // Handle Ctrl+C to exit
+                    if c == 'c' && modifiers.contains(KeyModifiers::CONTROL) {
+                        disable_raw_mode()?;
+                        return Ok("exit".to_string());
+                    }
+
+                    buffer.push(c);
+                    print!("{}", c);
+                    io::stdout().flush()?;
+                }
+
+                // Escape key to cancel
+                KeyCode::Esc => {
+                    disable_raw_mode()?;
+                    return Ok("".to_string());
+                }
+
+                _ => {}
+            }
+        }
+    }
+
+    Ok(buffer)
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("ShellAI - Your AI assistant in the terminal");
     println!("Type 'exit' or 'quit' to end the session");
+    println!("Press Enter for a new line, Ctrl+S to submit your question");
 
     // Create an OpenAI agent
     let agent = match OpenAIAgent::new("gpt-4".to_string()) {
@@ -29,12 +118,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         print!("\n{}: ", "You".bright_green());
         io::stdout().flush()?;
 
-        // Read user input
-        let mut user_input = String::new();
-        io::stdin().read_line(&mut user_input)?;
-
-        // Trim whitespace
-        let user_input = user_input.trim();
+        // Read multiline user input
+        let user_input = read_multiline_input()?;
 
         // Check for exit command
         if user_input.eq_ignore_ascii_case("exit") || user_input.eq_ignore_ascii_case("quit") {
@@ -52,7 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         io::stdout().flush()?;
 
         // Get response from OpenAI
-        match agent.generate_response(user_input).await {
+        match agent.generate_response(&user_input).await {
             Ok(response) => {
                 // Clear the "thinking" indicator
                 print!("\r{}", " ".repeat(16));

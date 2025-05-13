@@ -3,7 +3,7 @@ use crossterm::{
     cursor::{MoveToColumn, MoveUp},
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
+    terminal::{disable_raw_mode, enable_raw_mode},
 };
 use regex::Regex;
 use shellai::OpenAIAgent;
@@ -38,7 +38,7 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
                 // Enter key adds a newline character
                 KeyCode::Enter => {
                     buffer.push('\n');
-                    print!("\n");
+                    println!();
                     io::stdout().flush()?;
                 }
 
@@ -119,11 +119,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "ShellAI Commands:".bright_yellow());
         println!("{} - Add a new line", "Enter".bright_cyan());
         println!("{} - Submit your question", "Ctrl+S".bright_cyan());
-        println!("{} - Exit the application", "Ctrl+C or type 'exit'/'quit'".bright_cyan());
+        println!(
+            "{} - Exit the application",
+            "Ctrl+C or type 'exit'/'quit'".bright_cyan()
+        );
         println!("{} - Cancel current input", "Esc".bright_cyan());
         println!("{} - Navigate and edit text", "Backspace".bright_cyan());
         println!("{}", "─".repeat(60).bright_black());
-        
+
         // Print prompt
         print!("{}: ", "You".bright_green());
         io::stdout().flush()?;

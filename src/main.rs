@@ -133,13 +133,20 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
                     // Handle Ctrl+C to exit
                     if c == 'c' && modifiers.contains(KeyModifiers::CONTROL) {
                         disable_raw_mode()?;
-                        return Ok("exit".to_string());
+                        println!("\n{}", "Goodbye!".bright_blue());
+                        std::process::exit(0); // Immediately exit the program
                     }
                     
-                    // Handle '?' to show available models
-                    if c == '?' && buffer.is_empty() {
+                    // Handle Ctrl+A to show available models (A for Agents)
+                    if c == 'a' && modifiers.contains(KeyModifiers::CONTROL) {
                         disable_raw_mode()?;
-                        return Ok("?".to_string());
+                        return Ok("ctrl+a".to_string());
+                    }
+                    
+                    // Handle Ctrl+h to show expanded menu (h for help)
+                    if c == 'h' && modifiers.contains(KeyModifiers::CONTROL) {
+                        disable_raw_mode()?;
+                        return Ok("ctrl+h".to_string());
                     }
 
                     buffer.push(c);
@@ -184,20 +191,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Interactive loop
     loop {
-        // Print help text near the prompt area
+        // Print simplified inline menu
         println!("\n{}", "─".repeat(60).bright_black());
-        println!("{}", "ShellAI Commands:".bright_yellow());
-        println!("{} - Add a new line", "Enter".bright_cyan());
-        println!("{} - Submit your question", "Ctrl+S".bright_cyan());
-        println!(
-            "{} - Exit the application",
-            "Ctrl+C or type 'exit'/'quit'".bright_cyan()
+        println!("{} {} {} {} {} {} {} {}", 
+            "Model:".bright_yellow(), 
+            current_model.bright_green(),
+            "•".bright_white(),
+            "Commands:".bright_yellow(),
+            "<c-s> to send".bright_cyan(),
+            "•".bright_white(),
+            "<c-h> for help".bright_cyan(),
+            "<c-a> for models".bright_cyan()
         );
-        println!("{} - Cancel current input", "Esc".bright_cyan());
-        println!("{} - Navigate and edit text", "Backspace".bright_cyan());
-        println!("{} - Show available models", "?".bright_cyan());
-        println!("{}", "─".repeat(60).bright_black());
-        println!("{} {}", "Current model:".bright_yellow(), current_model.bright_green());
         println!("{}", "─".repeat(60).bright_black());
 
         // Print prompt
@@ -207,14 +212,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Read multiline user input
         let user_input = read_multiline_input()?;
 
-        // Check for exit command
-        if user_input.eq_ignore_ascii_case("exit") || user_input.eq_ignore_ascii_case("quit") {
-            println!("{}", "Goodbye!".bright_blue());
-            break;
-        }
+        // We're no longer checking for "exit" or "quit" text commands
+        // as we prefer to use Ctrl+C for exiting
 
+        // Check for expanded menu command
+        if user_input == "ctrl+h" {
+            println!("\n{}", "ShellAI Expanded Help:".bright_yellow());
+            println!("{}", "─".repeat(60).bright_black());
+            println!("{} - Add a new line", "Enter".bright_cyan());
+            println!("{} - Submit your question", "Ctrl+S".bright_cyan());
+            println!("{} - Exit the application", "Ctrl+C".bright_cyan());
+            println!("{} - Cancel current input", "Esc".bright_cyan());
+            println!("{} - Navigate and edit text", "Backspace".bright_cyan());
+            println!("{} - Show this expanded help menu", "Ctrl+H".bright_cyan());
+            println!("{} - Select a different AI model", "Ctrl+A".bright_cyan());
+            println!("{}", "─".repeat(60).bright_black());
+            continue;
+        }
+        
         // Check for model selection command
-        if user_input == "?" {
+        if user_input == "ctrl+a" {
             match select_ai_model()? {
                 Some(model) => {
                     println!("{} {}", "Switching to model:".bright_yellow(), model.name.bright_green());

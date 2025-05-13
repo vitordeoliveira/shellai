@@ -95,8 +95,6 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("ShellAI - Your AI assistant in the terminal");
-    println!("Type 'exit' or 'quit' to end the session");
-    println!("Press Enter for a new line, Ctrl+S to submit your question");
 
     // Create an OpenAI agent
     let agent = match OpenAIAgent::new("gpt-4".to_string()) {

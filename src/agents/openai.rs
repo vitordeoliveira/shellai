@@ -145,9 +145,6 @@ impl OpenAIAgent {
 mod tests {
     use super::*;
     use std::env;
-    use std::fs::{self, File};
-    use std::io::Write;
-    use tempfile::tempdir;
 
     // Save the original environment variable value before tests and restore it after
     fn with_env_var<F>(key: &str, value: Option<&str>, test: F)

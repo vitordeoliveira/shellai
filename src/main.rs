@@ -10,6 +10,69 @@ use shellai::OpenAIAgent;
 use std::io::{self, Write};
 use std::process::Command;
 
+// Define available AI models/agents
+#[derive(Debug, Clone)]
+struct AIModel {
+    name: String,
+    model_id: String,
+    description: String,
+}
+
+// List of available AI models
+fn get_available_models() -> Vec<AIModel> {
+    vec![
+        AIModel {
+            name: "GPT-4".to_string(),
+            model_id: "gpt-4".to_string(),
+            description: "Advanced model with strong reasoning capabilities".to_string(),
+        },
+        AIModel {
+            name: "GPT-3.5 Turbo".to_string(),
+            model_id: "gpt-3.5-turbo".to_string(),
+            description: "Fast and efficient for most tasks".to_string(),
+        },
+        AIModel {
+            name: "GPT-4o".to_string(),
+            model_id: "gpt-4o".to_string(),
+            description: "Latest model with improved capabilities".to_string(),
+        },
+    ]
+}
+
+/// Display available AI models and let the user select one
+fn select_ai_model() -> Result<Option<AIModel>, Box<dyn std::error::Error>> {
+    let models = get_available_models();
+    
+    println!("\n{}", "Available AI Models:".bright_yellow());
+    println!("{}", "─".repeat(60).bright_black());
+    
+    for (i, model) in models.iter().enumerate() {
+        println!(
+            "{}: {} - {}",
+            (i + 1).to_string().bright_cyan(),
+            model.name.bright_green(),
+            model.description.bright_white()
+        );
+    }
+    
+    println!("{}", "─".repeat(60).bright_black());
+    print!("{}: ", "Enter model number (or any other key to cancel)".bright_yellow());
+    io::stdout().flush()?;
+    
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    
+    let selection = input.trim().parse::<usize>().ok();
+    
+    match selection {
+        Some(n) if n > 0 && n <= models.len() => Ok(Some(models[n - 1].clone())),
+        _ => {
+            println!("{}", "Model selection cancelled.".bright_yellow());
+            Ok(None)
+        }
+    }
+}
+
 /// Read multiline input from the user, with Enter adding a new line and Ctrl+S submitting
 fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
     let mut buffer = String::new();
@@ -72,6 +135,12 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
                         disable_raw_mode()?;
                         return Ok("exit".to_string());
                     }
+                    
+                    // Handle '?' to show available models
+                    if c == '?' && buffer.is_empty() {
+                        disable_raw_mode()?;
+                        return Ok("?".to_string());
+                    }
 
                     buffer.push(c);
                     print!("{}", c);
@@ -96,8 +165,11 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("ShellAI - Your AI assistant in the terminal");
 
+    // Default model
+    let mut current_model = "gpt-4".to_string();
+
     // Create an OpenAI agent
-    let agent = match OpenAIAgent::new("gpt-4".to_string()) {
+    let mut agent = match OpenAIAgent::new(current_model.clone()) {
         Ok(agent) => agent,
         Err(e) => {
             eprintln!("Error initializing OpenAI agent: {}", e);
@@ -123,6 +195,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         println!("{} - Cancel current input", "Esc".bright_cyan());
         println!("{} - Navigate and edit text", "Backspace".bright_cyan());
+        println!("{} - Show available models", "?".bright_cyan());
+        println!("{}", "─".repeat(60).bright_black());
+        println!("{} {}", "Current model:".bright_yellow(), current_model.bright_green());
         println!("{}", "─".repeat(60).bright_black());
 
         // Print prompt
@@ -136,6 +211,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if user_input.eq_ignore_ascii_case("exit") || user_input.eq_ignore_ascii_case("quit") {
             println!("{}", "Goodbye!".bright_blue());
             break;
+        }
+
+        // Check for model selection command
+        if user_input == "?" {
+            match select_ai_model()? {
+                Some(model) => {
+                    println!("{} {}", "Switching to model:".bright_yellow(), model.name.bright_green());
+                    current_model = model.model_id.clone();
+                    
+                    // Create a new agent with the selected model
+                    agent = match OpenAIAgent::new(current_model.clone()) {
+                        Ok(new_agent) => new_agent,
+                        Err(e) => {
+                            eprintln!("Error initializing OpenAI agent with new model: {}", e);
+                            continue;
+                        }
+                    };
+                }
+                None => {
+                    println!("{} {}", "Continuing with current model:".bright_yellow(), current_model.bright_green());
+                }
+            }
+            continue;
         }
 
         // Skip empty inputs

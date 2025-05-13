@@ -30,6 +30,9 @@ struct ChatCompletionRequest {
 
 // System prompt to guide the AI's responses
 const SYSTEM_PROMPT: &str = r#"You are ShellAI, a helpful AI assistant in a terminal environment. 
+
+Important: The user is using a terminal interface where they can press Enter to create new lines within their question. Treat all lines as part of a single coherent question or request, even if they appear to be separate statements. The user may be formatting their question across multiple lines for clarity.
+
 When responding, follow these guidelines:
 
 1. When providing bash commands or scripts, always format them in code blocks using ```bash and ``` syntax.

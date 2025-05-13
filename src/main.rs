@@ -114,8 +114,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Interactive loop
     loop {
+        // Print help text near the prompt area
+        println!("\n{}", "─".repeat(60).bright_black());
+        println!("{}", "ShellAI Commands:".bright_yellow());
+        println!("{} - Add a new line", "Enter".bright_cyan());
+        println!("{} - Submit your question", "Ctrl+S".bright_cyan());
+        println!("{} - Exit the application", "Ctrl+C or type 'exit'/'quit'".bright_cyan());
+        println!("{} - Cancel current input", "Esc".bright_cyan());
+        println!("{} - Navigate and edit text", "Backspace".bright_cyan());
+        println!("{}", "─".repeat(60).bright_black());
+        
         // Print prompt
-        print!("\n{}: ", "You".bright_green());
+        print!("{}: ", "You".bright_green());
         io::stdout().flush()?;
 
         // Read multiline user input

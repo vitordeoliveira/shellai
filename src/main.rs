@@ -42,10 +42,10 @@ fn get_available_models() -> Vec<AIModel> {
 /// Display available AI models and let the user select one
 fn select_ai_model() -> Result<Option<AIModel>, Box<dyn std::error::Error>> {
     let models = get_available_models();
-    
+
     println!("\n{}", "Available AI Models:".bright_yellow());
     println!("{}", "─".repeat(60).bright_black());
-    
+
     for (i, model) in models.iter().enumerate() {
         println!(
             "{}: {} - {}",
@@ -54,16 +54,19 @@ fn select_ai_model() -> Result<Option<AIModel>, Box<dyn std::error::Error>> {
             model.description.bright_white()
         );
     }
-    
+
     println!("{}", "─".repeat(60).bright_black());
-    print!("{}: ", "Enter model number (or any other key to cancel)".bright_yellow());
+    print!(
+        "{}: ",
+        "Enter model number (or any other key to cancel)".bright_yellow()
+    );
     io::stdout().flush()?;
-    
+
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
-    
+
     let selection = input.trim().parse::<usize>().ok();
-    
+
     match selection {
         Some(n) if n > 0 && n <= models.len() => Ok(Some(models[n - 1].clone())),
         _ => {
@@ -136,13 +139,13 @@ fn read_multiline_input() -> Result<String, Box<dyn std::error::Error>> {
                         println!("\n{}", "Goodbye!".bright_blue());
                         std::process::exit(0); // Immediately exit the program
                     }
-                    
+
                     // Handle Ctrl+A to show available models (A for Agents)
                     if c == 'a' && modifiers.contains(KeyModifiers::CONTROL) {
                         disable_raw_mode()?;
                         return Ok("ctrl+a".to_string());
                     }
-                    
+
                     // Handle Ctrl+h to show expanded menu (h for help)
                     if c == 'h' && modifiers.contains(KeyModifiers::CONTROL) {
                         disable_raw_mode()?;
@@ -193,8 +196,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         // Print simplified inline menu
         println!("\n{}", "─".repeat(60).bright_black());
-        println!("{} {} {} {} {} {} {} {}", 
-            "Model:".bright_yellow(), 
+        println!(
+            "{} {} {} {} {} {} {} {}",
+            "Model:".bright_yellow(),
             current_model.bright_green(),
             "•".bright_white(),
             "Commands:".bright_yellow(),
@@ -229,14 +233,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", "─".repeat(60).bright_black());
             continue;
         }
-        
+
         // Check for model selection command
         if user_input == "ctrl+a" {
             match select_ai_model()? {
                 Some(model) => {
-                    println!("{} {}", "Switching to model:".bright_yellow(), model.name.bright_green());
+                    println!(
+                        "{} {}",
+                        "Switching to model:".bright_yellow(),
+                        model.name.bright_green()
+                    );
                     current_model = model.model_id.clone();
-                    
+
                     // Create a new agent with the selected model
                     agent = match OpenAIAgent::new(current_model.clone()) {
                         Ok(new_agent) => new_agent,
@@ -247,7 +255,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
                 }
                 None => {
-                    println!("{} {}", "Continuing with current model:".bright_yellow(), current_model.bright_green());
+                    println!(
+                        "{} {}",
+                        "Continuing with current model:".bright_yellow(),
+                        current_model.bright_green()
+                    );
                 }
             }
             continue;
@@ -353,6 +365,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-
-    Ok(())
 }
